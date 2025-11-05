@@ -163,6 +163,12 @@ npm install
 書籍: `===== ・3-2. Vue.jsアプリケーションの実装`
 
 ```bash
+# リポジトリが最新の状態でない場合は、一度削除して再クローンするか、git pullで最新化
+# （リポジトリをクローンした後にファイルが追加された場合に必要）
+cd /opt/todoapp
+rm -rf temp-config
+git clone https://github.com/yamadas1213/three-tier-architecture-beginner.git temp-config
+
 # リポジトリからApp.vueをコピー
 cp /opt/todoapp/temp-config/opt/frontend/src/App.vue /opt/todoapp/frontend/src/App.vue
 ```
@@ -204,7 +210,9 @@ sudo systemctl enable todoapp
 sudo systemctl status todoapp
 ```
 
-**注意**: `todoapp.service`ファイル内の`<mysql-private-ip>`と`<mysql-password>`を実際の値に置き換えてください。
+**重要**: この時点では、MySQL HeatWaveのプライベートIPアドレスとパスワードが確定していないため、
+環境変数の編集は後回しにします。MySQL HeatWaveの構築が完了した後、
+「MySQL HeatWaveの構築」セクションの後に再度このファイルを編集してください。
 
 ### nginxの設定
 
@@ -288,6 +296,32 @@ SELECT * FROM todos;
 -- MySQLから切断
 EXIT;
 ```
+
+### Gunicorn設定ファイルの更新
+
+書籍: `=== MySQL HeatWaveの構築 > ==== ■2. データベースとテーブルの作成 > ===== ・3. Gunicorn設定ファイルの更新`
+
+MySQL HeatWaveの作成が完了し、プライベートIPアドレスとパスワードが確定したため、
+Gunicornのsystemdサービスファイルを更新します。
+
+```bash
+# Gunicornのサービスファイルを編集
+sudo vi /etc/systemd/system/todoapp.service
+
+# 以下の環境変数を実際の値に置き換えます：
+# Environment="MYSQL_HOST=<mysql-private-ip>"  →  MySQL HeatWaveのプライベートIPアドレス
+# Environment="MYSQL_PASSWORD=<mysql-password>" →  MySQL HeatWaveの管理者パスワード
+
+# 設定を更新したら、systemdの設定を再読み込みしてサービスを再起動
+sudo systemctl daemon-reload
+sudo systemctl restart todoapp
+
+# サービスが正常に起動しているか確認
+sudo systemctl status todoapp
+```
+
+**注意**: MySQL HeatWaveのプライベートIPアドレスは、OCIコンソールの「データベース」→「MySQL HeatWave」→
+作成したDBシステムの「接続」タブから確認できます。パスワードは、MySQL HeatWave作成時に設定した管理者パスワードを使用してください。
 
 ---
 
