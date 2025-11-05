@@ -58,12 +58,18 @@ sudo dnf install nginx -y
 sudo dnf install mysql -y
 sudo dnf install git -y
 
+# Node.jsとnpmのインストール（フロントエンド構築用）
+sudo dnf module enable -y nodejs:20
+sudo dnf install -y nodejs
+
 # インストール確認
 python3.11 --version
 python3.11 -m pip --version
 nginx -v
 mysql --version
 git --version
+node --version
+npm --version
 ```
 
 ### GitHubリポジトリのクローン
@@ -86,6 +92,83 @@ ls -la
 python3.11 -m venv venv
 source venv/bin/activate
 pip install -r ./opt/backend/requirements.txt
+```
+
+### フロントエンドのビルド
+
+書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・3-1. フロントエンドの構築`
+
+```bash
+# フロントエンドディレクトリに移動
+cd /opt/todoapp/home/opc/frontend/frontend
+
+# 依存パッケージのインストール
+npm install
+
+# プロダクションビルドの実行
+npm run build
+
+# ビルド結果の確認（distディレクトリが作成される）
+ls -la dist/
+```
+
+### Flaskアプリケーションの設定更新
+
+書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・3-2. Flaskアプリケーションの設定更新`
+
+```bash
+# /opt/todoappディレクトリに戻る
+cd /opt/todoapp
+
+# Flaskアプリケーションのバックアップ
+cp opt/backend/app.py opt/backend/app.py.bak
+
+# Flaskアプリケーションを編集して静的ファイル配信を有効化
+# エディタでapp.pyを開く（例：viを使用）
+vi opt/backend/app.py
+```
+
+**app.pyに追加する内容:**
+
+```python
+from flask import Flask, request, jsonify, send_from_directory
+import os
+from db import get_db, close_db
+
+# フロントエンドのビルド済みファイルのパスを指定
+FRONTEND_PATH = os.path.join(os.path.dirname(__file__), '../../home/opc/frontend/frontend/dist')
+
+app = Flask(__name__, static_folder=FRONTEND_PATH, static_url_path='')
+app.teardown_appcontext(close_db)
+
+# ルートパスでindex.htmlを返す
+@app.route('/')
+def index():
+    return send_from_directory(FRONTEND_PATH, 'index.html')
+
+# APIエンドポイント（既存のコード）
+@app.get("/health")
+def health(): return {"status": "ok"}
+
+@app.get("/api/todos")
+def list_todos():
+    with get_db().cursor() as cur:
+        cur.execute("SELECT id, title, done, created_at FROM todos ORDER BY id DESC")
+        return jsonify(cur.fetchall())
+
+@app.post("/api/todos")
+def add_todo():
+    title = (request.get_json() or {}).get("title","").strip()
+    if not title: return {"error":"title required"}, 400
+    with get_db().cursor() as cur:
+        cur.execute("INSERT INTO todos(title, done) VALUES(%s, 0)", (title,))
+    return {"ok": True}, 201
+
+@app.post("/api/todos/<int:todo_id>/toggle")
+def toggle(todo_id):
+    with get_db().cursor() as cur:
+        cur.execute("UPDATE todos SET done = 1 - done WHERE id=%s", (todo_id,))
+    return {"ok": True}, 200
 ```
 
 ### Gunicornの設定
