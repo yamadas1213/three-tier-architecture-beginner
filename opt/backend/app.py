@@ -1,8 +1,17 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
+import os
 from db import get_db, close_db
 
-app = Flask(__name__)
+# フロントエンドのビルド済みファイルのパスを指定
+FRONTEND_PATH = os.path.join(os.path.dirname(__file__), '../frontend/dist')
+
+app = Flask(__name__, static_folder=FRONTEND_PATH, static_url_path='')
 app.teardown_appcontext(close_db)
+
+# ルートパスでindex.htmlを返す
+@app.route('/')
+def index():
+    return send_from_directory(FRONTEND_PATH, 'index.html')
 
 @app.get("/health")
 def health(): return {"status": "ok"}

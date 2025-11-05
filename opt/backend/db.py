@@ -1,18 +1,23 @@
-import os, pymysql
 from flask import g
+import mysql.connector
+from mysql.connector import Error
+import os
 
 def get_db():
     if 'db' not in g:
-        g.db = pymysql.connect(
-            host=os.getenv('DB_HOST'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD'),
-            database=os.getenv('DB_NAME'),
-            cursorclass=pymysql.cursors.DictCursor,
-            autocommit=True
-        )
+        try:
+            g.db = mysql.connector.connect(
+                host=os.environ.get('MYSQL_HOST', 'localhost'),
+                user=os.environ.get('MYSQL_USER', 'admin'),
+                password=os.environ.get('MYSQL_PASSWORD', ''),
+                database=os.environ.get('MYSQL_DATABASE', 'tododb')
+            )
+        except Error as e:
+            print(f"Error connecting to MySQL: {e}")
+            raise
     return g.db
 
 def close_db(e=None):
     db = g.pop('db', None)
-    if db: db.close()
+    if db is not None:
+        db.close()

@@ -121,98 +121,15 @@ source venv/bin/activate
 pip install flask gunicorn mysql-connector-python
 ```
 
-#### Flaskアプリケーションの作成
+#### バックエンドアプリケーションファイルのコピー
 
-書籍: `===== ・2-4. Flaskアプリケーションの作成`
-
-```bash
-# app.pyの作成
-cat > app.py << 'EOF'
-from flask import Flask, request, jsonify, send_from_directory
-import os
-from db import get_db, close_db
-
-# フロントエンドのビルド済みファイルのパスを指定
-FRONTEND_PATH = os.path.join(os.path.dirname(__file__), '../frontend/dist')
-
-app = Flask(__name__, static_folder=FRONTEND_PATH, static_url_path='')
-app.teardown_appcontext(close_db)
-
-# ルートパスでindex.htmlを返す
-@app.route('/')
-def index():
-    return send_from_directory(FRONTEND_PATH, 'index.html')
-
-@app.get("/health")
-def health(): return {"status": "ok"}
-
-@app.get("/api/todos")
-def list_todos():
-    with get_db().cursor() as cur:
-        cur.execute("SELECT id, title, done, created_at FROM todos ORDER BY id DESC")
-        return jsonify(cur.fetchall())
-
-@app.post("/api/todos")
-def add_todo():
-    title = (request.get_json() or {}).get("title","").strip()
-    if not title: return {"error":"title required"}, 400
-    with get_db().cursor() as cur:
-        cur.execute("INSERT INTO todos(title, done) VALUES(%s, 0)", (title,))
-    return {"ok": True}, 201
-
-@app.post("/api/todos/<int:todo_id>/toggle")
-def toggle(todo_id):
-    with get_db().cursor() as cur:
-        cur.execute("UPDATE todos SET done = 1 - done WHERE id=%s", (todo_id,))
-    return {"ok": True}, 200
-EOF
-```
-
-#### データベース接続モジュールの作成
-
-書籍: `===== ・2-5. データベース接続モジュールの作成`
+書籍: `===== ・2-4. バックエンドアプリケーションファイルのコピー`
 
 ```bash
-# db.pyの作成
-cat > db.py << 'EOF'
-from flask import g
-import mysql.connector
-from mysql.connector import Error
-import os
-
-def get_db():
-    if 'db' not in g:
-        try:
-            g.db = mysql.connector.connect(
-                host=os.environ.get('MYSQL_HOST', 'localhost'),
-                user=os.environ.get('MYSQL_USER', 'admin'),
-                password=os.environ.get('MYSQL_PASSWORD', ''),
-                database=os.environ.get('MYSQL_DATABASE', 'tododb')
-            )
-        except Error as e:
-            print(f"Error connecting to MySQL: {e}")
-            raise
-    return g.db
-
-def close_db(e=None):
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
-EOF
-```
-
-#### WSGIエントリーポイントの作成
-
-書籍: `===== ・2-6. WSGIエントリーポイントの作成`
-
-```bash
-# wsgi.pyの作成
-cat > wsgi.py << 'EOF'
-from app import app
-
-if __name__ == "__main__":
-    app.run()
-EOF
+# リポジトリからバックエンドファイルをコピー
+cp /opt/todoapp/temp-config/opt/backend/app.py /opt/todoapp/backend/
+cp /opt/todoapp/temp-config/opt/backend/db.py /opt/todoapp/backend/
+cp /opt/todoapp/temp-config/opt/backend/wsgi.py /opt/todoapp/backend/
 ```
 
 ### フロントエンドの構築
