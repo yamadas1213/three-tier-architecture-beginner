@@ -1,0 +1,15 @@
+[Unit]
+Description=Gunicorn instance to serve todoapp
+After=network.target
+
+[Service]
+User=opc
+Group=opc
+WorkingDirectory=/opt/todoapp
+Environment="PATH=/opt/todoapp/venv/bin"
+ExecStart=/opt/todoapp/venv/bin/gunicorn --workers 3 \
+  --bind unix:todoapp.sock -m 007 app:app
+
+[Install]
+WantedBy=multi-user.target
+
