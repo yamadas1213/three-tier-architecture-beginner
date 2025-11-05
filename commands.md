@@ -59,8 +59,14 @@ sudo dnf install mysql -y
 sudo dnf install git -y
 
 # Node.jsとnpmのインストール（フロントエンド構築用）
+# 利用可能なNode.jsモジュールを確認
+sudo dnf module list nodejs
+
+# Node.js 20モジュールを有効化
 sudo dnf module enable -y nodejs:20
-sudo dnf install -y nodejs
+
+# Node.jsとnpmをインストール
+sudo dnf install -y nodejs npm
 
 # インストール確認
 python3.11 --version
@@ -94,16 +100,32 @@ source venv/bin/activate
 pip install -r ./opt/backend/requirements.txt
 ```
 
-### フロントエンドのビルド
+### フロントエンドの構築
 
 書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・3-1. フロントエンドの構築`
 
+リポジトリにはVue.jsのソースコード（App.js）のみが含まれており、Viteプロジェクトの設定ファイル（package.jsonなど）は含まれていません。
+そのため、Viteを使ってVue.jsプロジェクトを作成し、リポジトリのソースコードを配置します。
+
 ```bash
 # フロントエンドディレクトリに移動
-cd /opt/todoapp/home/opc/frontend/frontend
+cd /opt/todoapp/home/opc/frontend
+
+# 既存のfrontendディレクトリをバックアップ
+mv frontend frontend.backup
+
+# Viteを使ってVue.jsプロジェクトを作成
+npm create vite@latest frontend -- --template vue
+
+# プロジェクトディレクトリに移動
+cd frontend
 
 # 依存パッケージのインストール
 npm install
+
+# リポジトリに含まれているApp.jsをsrcディレクトリにコピー
+# （既存のApp.vueを上書き）
+cp ../frontend.backup/src/App.js src/App.vue
 
 # プロダクションビルドの実行
 npm run build
