@@ -5,11 +5,14 @@ After=network.target
 [Service]
 User=opc
 Group=opc
-WorkingDirectory=/opt/todoapp
-Environment="PATH=/opt/todoapp/venv/bin"
-ExecStart=/opt/todoapp/venv/bin/gunicorn --workers 3 \
-  --bind unix:todoapp.sock -m 007 app:app
+WorkingDirectory=/opt/todoapp/backend
+Environment="PATH=/opt/todoapp/backend/venv/bin"
+Environment="MYSQL_HOST=<mysql-private-ip>"
+Environment="MYSQL_USER=admin"
+Environment="MYSQL_PASSWORD=<mysql-password>"
+Environment="MYSQL_DATABASE=tododb"
+ExecStart=/opt/todoapp/backend/venv/bin/gunicorn --workers 3 \
+  --bind unix:todoapp.sock -m 007 wsgi:app
 
 [Install]
 WantedBy=multi-user.target
-

@@ -78,87 +78,62 @@ node --version
 npm --version
 ```
 
-### GitHubリポジトリのクローン
+### バックエンドの構築
 
-書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・2. アプリケーションのセットアップ > ===== ・2-1. GitHubリポジトリのクローン`
+書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・2. バックエンドの構築`
+
+#### アプリケーション用ディレクトリの作成とリポジトリのクローン
+
+書籍: `===== ・2-1. アプリケーション用ディレクトリの作成とリポジトリのクローン`
+
+設定ファイル（Gunicornとnginx）を取得するため、GitHubリポジトリをクローンします。
 
 ```bash
+# アプリケーション用ディレクトリの作成
 sudo mkdir -p /opt/todoapp
 sudo chown opc:opc /opt/todoapp
 cd /opt/todoapp
-git clone https://github.com/yamadas1213/three-tier-architecture-beginner.git .
-ls -la
+
+# GitHubからリポジトリをクローン（設定ファイルを取得するため）
+git clone https://github.com/yamadas1213/three-tier-architecture-beginner.git temp-config
 ```
 
-### Python依存パッケージのインストール
+#### バックエンドディレクトリの作成
 
-書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・3. Python依存パッケージのインストール`
+書籍: `===== ・2-2. バックエンドディレクトリの作成`
 
 ```bash
+# バックエンドディレクトリの作成
+mkdir -p backend
+cd backend
+```
+
+#### Python仮想環境と依存パッケージ
+
+書籍: `===== ・2-3. Python仮想環境の作成と依存パッケージのインストール`
+
+```bash
+# 仮想環境の作成
 python3.11 -m venv venv
 source venv/bin/activate
-pip install -r ./opt/backend/requirements.txt
+
+# 必要なパッケージのインストール
+pip install flask gunicorn mysql-connector-python
 ```
 
-### フロントエンドの構築
+#### Flaskアプリケーションの作成
 
-書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・3-1. フロントエンドの構築`
-
-リポジトリにはVue.jsのソースコード（App.js）のみが含まれており、Viteプロジェクトの設定ファイル（package.jsonなど）は含まれていません。
-そのため、Viteを使ってVue.jsプロジェクトを作成し、リポジトリのソースコードを配置します。
+書籍: `===== ・2-4. Flaskアプリケーションの作成`
 
 ```bash
-# フロントエンドディレクトリに移動
-cd /opt/todoapp/home/opc/frontend
-
-# 既存のfrontendディレクトリをバックアップ
-mv frontend frontend.backup
-
-# Viteを使ってVue.jsプロジェクトを作成
-npm create vite@latest frontend -- --template vue
-
-# プロジェクトディレクトリに移動
-cd frontend
-
-# 依存パッケージのインストール
-npm install
-
-# リポジトリに含まれているApp.jsをsrcディレクトリにコピー
-# （既存のApp.vueを上書き）
-cp ../frontend.backup/src/App.js src/App.vue
-
-# プロダクションビルドの実行
-npm run build
-
-# ビルド結果の確認（distディレクトリが作成される）
-ls -la dist/
-```
-
-### Flaskアプリケーションの設定更新
-
-書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・3-2. Flaskアプリケーションの設定更新`
-
-```bash
-# /opt/todoappディレクトリに戻る
-cd /opt/todoapp
-
-# Flaskアプリケーションのバックアップ
-cp opt/backend/app.py opt/backend/app.py.bak
-
-# Flaskアプリケーションを編集して静的ファイル配信を有効化
-# エディタでapp.pyを開く（例：viを使用）
-vi opt/backend/app.py
-```
-
-**app.pyに追加する内容:**
-
-```python
+# app.pyの作成
+cat > app.py << 'EOF'
 from flask import Flask, request, jsonify, send_from_directory
 import os
 from db import get_db, close_db
 
 # フロントエンドのビルド済みファイルのパスを指定
-FRONTEND_PATH = os.path.join(os.path.dirname(__file__), '../../home/opc/frontend/frontend/dist')
+FRONTEND_PATH = os.path.join(os.path.dirname(__file__), '../frontend/dist')
 
 app = Flask(__name__, static_folder=FRONTEND_PATH, static_url_path='')
 app.teardown_appcontext(close_db)
@@ -168,7 +143,6 @@ app.teardown_appcontext(close_db)
 def index():
     return send_from_directory(FRONTEND_PATH, 'index.html')
 
-# APIエンドポイント（既存のコード）
 @app.get("/health")
 def health(): return {"status": "ok"}
 
@@ -191,6 +165,262 @@ def toggle(todo_id):
     with get_db().cursor() as cur:
         cur.execute("UPDATE todos SET done = 1 - done WHERE id=%s", (todo_id,))
     return {"ok": True}, 200
+EOF
+```
+
+#### データベース接続モジュールの作成
+
+書籍: `===== ・2-5. データベース接続モジュールの作成`
+
+```bash
+# db.pyの作成
+cat > db.py << 'EOF'
+from flask import g
+import mysql.connector
+from mysql.connector import Error
+import os
+
+def get_db():
+    if 'db' not in g:
+        try:
+            g.db = mysql.connector.connect(
+                host=os.environ.get('MYSQL_HOST', 'localhost'),
+                user=os.environ.get('MYSQL_USER', 'admin'),
+                password=os.environ.get('MYSQL_PASSWORD', ''),
+                database=os.environ.get('MYSQL_DATABASE', 'tododb')
+            )
+        except Error as e:
+            print(f"Error connecting to MySQL: {e}")
+            raise
+    return g.db
+
+def close_db(e=None):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+EOF
+```
+
+#### WSGIエントリーポイントの作成
+
+書籍: `===== ・2-6. WSGIエントリーポイントの作成`
+
+```bash
+# wsgi.pyの作成
+cat > wsgi.py << 'EOF'
+from app import app
+
+if __name__ == "__main__":
+    app.run()
+EOF
+```
+
+### フロントエンドの構築
+
+書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・3. フロントエンドの構築`
+
+#### Viteプロジェクトの作成
+
+書籍: `===== ・3-1. Viteプロジェクトの作成`
+
+```bash
+# /opt/todoappディレクトリに移動
+cd /opt/todoapp
+
+# Viteを使ってVue.jsプロジェクトを作成
+npm create vite@latest frontend -- --template vue
+
+# プロジェクトディレクトリに移動
+cd frontend
+
+# 依存パッケージのインストール
+npm install
+```
+
+#### Vue.jsアプリケーションの実装
+
+書籍: `===== ・3-2. Vue.jsアプリケーションの実装`
+
+```bash
+# App.vueを編集
+cat > src/App.vue << 'EOF'
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const todos = ref([])
+const newTitle = ref('')
+const loading = ref(false)
+const errorMsg = ref('')
+
+// 共通：API呼び出し
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts })
+  if (!res.ok) {
+    const t = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText} ${t}`)
+  }
+  const text = await res.text()
+  return text ? JSON.parse(text) : null
+}
+
+async function fetchTodos() {
+  loading.value = true
+  errorMsg.value = ''
+  try {
+    todos.value = await api('/api/todos')
+  } catch (e) {
+    errorMsg.value = '一覧の取得に失敗しました。' + (e?.message ? ` (${e.message})` : '')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function addTodo() {
+  const title = newTitle.value.trim()
+  if (!title) return
+  errorMsg.value = ''
+  try {
+    await api('/api/todos', { method: 'POST', body: JSON.stringify({ title }) })
+    newTitle.value = ''
+    await fetchTodos()
+  } catch (e) {
+    errorMsg.value = '追加に失敗しました。' + (e?.message ? ` (${e.message})` : '')
+  }
+}
+
+async function toggle(todo) {
+  errorMsg.value = ''
+  try {
+    await api(`/api/todos/${todo.id}/toggle`, { method: 'POST' })
+    await fetchTodos()
+  } catch (e) {
+    errorMsg.value = '更新に失敗しました。' + (e?.message ? ` (${e.message})` : '')
+  }
+}
+
+function onKeydown(e) {
+  if (e.key === 'Enter') addTodo()
+}
+
+onMounted(fetchTodos)
+</script>
+
+<template>
+  <main class="container">
+    <h1>TODO管理アプリ</h1>
+
+    <section class="composer">
+      <input
+        v-model="newTitle"
+        @keydown="onKeydown"
+        placeholder="新規TODOを入力して Enter"
+        aria-label="新規TODO入力"
+      />
+      <button @click="addTodo">追加</button>
+    </section>
+
+    <p v-if="loading" class="muted">読み込み中...</p>
+    <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
+
+    <ul class="list">
+      <li v-for="t in todos" :key="t.id" class="item">
+        <label class="row">
+          <input type="checkbox" :checked="t.done === 1 || t.done === true" @change="toggle(t)" />
+          <span :class="{ done: t.done === 1 || t.done === true }">{{ t.title }}</span>
+        </label>
+        <time class="stamp" v-if="t.created_at">{{ new Date(t.created_at).toLocaleString() }}</time>
+      </li>
+      <li v-if="!loading && !todos.length" class="muted">まだTODOがありません</li>
+    </ul>
+  </main>
+</template>
+
+<style>
+:root {
+  --fg: #111;
+  --muted: #666;
+  --border: #e5e7eb;
+  --accent: #0ea5e9;
+  --bg: #fff;
+}
+
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; }
+body {
+  margin: 0;
+  color: var(--fg);
+  background: var(--bg);
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,Apple Color Emoji,Segoe UI Emoji;
+}
+
+.container {
+  max-width: 720px;
+  margin: 40px auto;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0 0 16px;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+
+.composer input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+
+.composer input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
+}
+
+.composer button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.list { list-style: none; padding: 0; margin: 0; }
+.item {
+  padding: 10px 8px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.item:first-child { border-top: none; }
+
+.row { display: flex; align-items: center; gap: 10px; }
+
+.done { text-decoration: line-through; color: var(--muted); }
+.muted { color: var(--muted); margin: 8px 0; }
+.error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 8px 10px; border-radius: 8px; }
+.stamp { color: var(--muted); font-size: 12px; }
+</style>
+EOF
+```
+
+#### フロントエンドのビルド
+
+書籍: `===== ・3-3. フロントエンドのビルド`
+
+```bash
+# プロダクションビルドの実行
+npm run build
+
+# ビルド結果の確認（distディレクトリが作成される）
+ls -la dist/
 ```
 
 ### Gunicornの設定
@@ -198,20 +428,43 @@ def toggle(todo_id):
 書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・4. Gunicornの設定`
 
 ```bash
-sudo cp config/todoapp.service /etc/systemd/system/todoapp.service
+# リポジトリからクローンしたサービスファイルをsystemdディレクトリにコピー
+sudo cp /opt/todoapp/temp-config/config/todoapp.service /etc/systemd/system/todoapp.service
+
+# 環境変数を実際のMySQL HeatWaveの設定に合わせて編集
+# エディタで直接編集します
+sudo vi /etc/systemd/system/todoapp.service
+# <mysql-private-ip>を実際のMySQLプライベートIPに置き換える
+# <mysql-password>を実際のMySQLパスワードに置き換える
+
+# systemdの設定を再読み込み
 sudo systemctl daemon-reload
+
+# サービスの起動と自動起動設定
 sudo systemctl start todoapp
 sudo systemctl enable todoapp
+
+# サービスが正常に起動しているか確認
+sudo systemctl status todoapp
 ```
+
+**注意**: `todoapp.service`ファイル内の`<mysql-private-ip>`と`<mysql-password>`を実際の値に置き換えてください。
 
 ### nginxの設定
 
 書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・5. nginxの設定`
 
 ```bash
-sudo cp config/todoapp.conf /etc/nginx/conf.d/todoapp.conf
+# リポジトリからクローンしたnginx設定ファイルをコピー
+sudo cp /opt/todoapp/temp-config/config/todoapp.conf /etc/nginx/conf.d/todoapp.conf
+
+# デフォルト設定の無効化
 sudo rm -f /etc/nginx/conf.d/default.conf
+
+# nginxの設定を確認してから起動
 sudo nginx -t
+
+# nginxの起動と自動起動設定
 sudo systemctl start nginx
 sudo systemctl enable nginx
 ```
