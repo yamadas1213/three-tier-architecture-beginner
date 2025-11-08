@@ -364,34 +364,23 @@ sudo systemctl status todoapp
 
 書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・5. nginxの設定`
 
+nginx.confのバックアップを取得:
+
+```bash
+sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup
+```
+
+既存のdefault_serverが残ると後から配置するtodoapp.confと競合するため、
+デフォルトserverブロックをコメントアウト（パターンマッチで安全に変更）:
+
+```bash
+sudo sed -i '/^    server {/,/^    }$/s/^/# /' /etc/nginx/nginx.conf
+```
+
 リポジトリからクローンしたnginx設定ファイルをコピー:
 
 ```bash
 sudo cp /opt/todoapp/temp-config/config/todoapp.conf /etc/nginx/conf.d/todoapp.conf
-```
-
-nginx設定ファイルの内容を確認（proxy_passのパスが正しいか確認）:
-
-```bash
-sudo cat /etc/nginx/conf.d/todoapp.conf
-```
-
-デフォルト設定の無効化:
-
-```bash
-sudo rm -f /etc/nginx/conf.d/default.conf
-```
-
-todoapp.confにdefault_serverを追加して優先度を上げる（これにより、nginx.confのデフォルトserverブロックと競合せずに優先される）:
-
-```bash
-sudo sed -i 's/listen 80;/listen 80 default_server;/' /etc/nginx/conf.d/todoapp.conf
-```
-
-設定ファイルの内容を確認:
-
-```bash
-sudo cat /etc/nginx/conf.d/todoapp.conf
 ```
 
 nginxの設定を確認してから起動:
@@ -436,34 +425,14 @@ sudo firewall-cmd --reload
 sudo firewall-cmd --list-services
 ```
 
-### SELinuxの無効化
+### SELinuxの設定調整
 
-書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・7. SELinuxの無効化`
+書籍: `=== アプリケーション用Computeの構築 > ==== ■2. アプリケーションのデプロイ > ===== ・7. SELinuxの設定調整`
 
-開発・学習環境では、SELinuxを無効化することで権限問題を回避できます。本番環境では適切に設定することを推奨しますが、ここでは無効化します。
-
-SELinuxの現在の状態を確認:
+nginxからバックエンドへのネットワーク接続を許可するためのポリシーのみ有効化します。
 
 ```bash
-getenforce
-```
-
-SELinuxを無効化（再起動後に反映）:
-
-```bash
-sudo sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
-```
-
-現在のセッションでも一時的に無効化（即座に反映）:
-
-```bash
-sudo setenforce 0
-```
-
-無効化されたことを確認:
-
-```bash
-getenforce
+sudo setsebool -P httpd_can_network_connect on
 ```
 
 ### アプリケーションの動作確認（ローカル）
