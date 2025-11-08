@@ -29,7 +29,8 @@ async function fetchTodos() {
   }
 }
 
-async function addTodo() {
+async function addTodo(e) {
+  if (e && e.isComposing) return
   const title = newTitle.value.trim()
   if (!title) return
   errorMsg.value = ''
@@ -52,10 +53,6 @@ async function toggle(todo) {
   }
 }
 
-function onKeydown(e) {
-  if (e.key === 'Enter') addTodo()
-}
-
 onMounted(fetchTodos)
 </script>
 
@@ -66,7 +63,7 @@ onMounted(fetchTodos)
     <section class="composer">
       <input
         v-model="newTitle"
-        @keydown="onKeydown"
+        @keyup.enter="addTodo"
         placeholder="新規TODOを入力して Enter"
         aria-label="新規TODO入力"
       />

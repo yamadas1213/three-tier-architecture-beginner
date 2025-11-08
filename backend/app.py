@@ -18,7 +18,7 @@ def health(): return {"status": "ok"}
 
 @app.get("/api/todos")
 def list_todos():
-    with get_db().cursor() as cur:
+    with get_db().cursor(dictionary=True) as cur:
         cur.execute("SELECT id, title, done, created_at FROM todos ORDER BY id DESC")
         return jsonify(cur.fetchall())
 
@@ -26,14 +26,14 @@ def list_todos():
 def add_todo():
     title = (request.get_json() or {}).get("title","").strip()
     if not title: return {"error":"title required"}, 400
-    with get_db().cursor() as cur:
+    with get_db().cursor(dictionary=True) as cur:
         cur.execute("INSERT INTO todos(title, done) VALUES(%s, 0)", (title,))
     get_db().commit()
     return {"ok": True}, 201
 
 @app.post("/api/todos/<int:todo_id>/toggle")
 def toggle(todo_id):
-    with get_db().cursor() as cur:
+    with get_db().cursor(dictionary=True) as cur:
         cur.execute("UPDATE todos SET done = 1 - done WHERE id=%s", (todo_id,))
     get_db().commit()
     return {"ok": True}, 200
