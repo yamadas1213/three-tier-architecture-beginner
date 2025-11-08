@@ -138,9 +138,9 @@ deactivate
 
 ```bash
 # リポジトリからバックエンドファイルをコピー
-cp /opt/todoapp/temp-config/opt/backend/app.py /opt/todoapp/backend/
-cp /opt/todoapp/temp-config/opt/backend/db.py /opt/todoapp/backend/
-cp /opt/todoapp/temp-config/opt/backend/wsgi.py /opt/todoapp/backend/
+cp /opt/todoapp/temp-config/backend/app.py /opt/todoapp/backend/
+cp /opt/todoapp/temp-config/backend/db.py /opt/todoapp/backend/
+cp /opt/todoapp/temp-config/backend/wsgi.py /opt/todoapp/backend/
 ```
 
 ### フロントエンドの構築
@@ -182,7 +182,7 @@ rm -rf temp-config
 git clone https://github.com/yamadas1213/three-tier-architecture-beginner.git temp-config
 
 # リポジトリからApp.vueをコピー
-cp /opt/todoapp/temp-config/opt/frontend/src/App.vue /opt/todoapp/frontend/src/App.vue
+cp /opt/todoapp/temp-config/frontend/App.vue /opt/todoapp/frontend/src/App.vue
 ```
 
 #### フロントエンドのビルド
