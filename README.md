@@ -25,21 +25,16 @@ Webブラウザから操作できるTODO管理アプリケーションを題材�
 .
 ├── README.md              # このファイル
 ├── commands.md            # 構築手順で使用するコマンド集
-├── config/               # 設定ファイル
-│   ├── todoapp.service   # Gunicorn用systemdサービスファイル
-│   └── todoapp.conf      # nginx設定ファイル
-├── opt/                  # バックエンドアプリケーション
-│   └── backend/
-│       ├── app.py        # Flaskアプリケーション
-│       ├── db.py         # データベース接続
-│       ├── requirements.txt  # Python依存パッケージ
-│       └── wsgi.py       # WSGIエントリーポイント
-└── home/                 # フロントエンドアプリケーション
-    └── opc/
-        └── frontend/
-            └── frontend/
-                └── src/
-                    └── App.js  # Vue.jsアプリケーション
+├── backend/              # バックエンドアプリケーション
+│   ├── app.py            # Flaskアプリケーション
+│   ├── db.py             # データベース接続
+│   ├── requirements.txt  # Python依存パッケージ
+│   └── wsgi.py           # WSGIエントリーポイント
+├── frontend/             # フロントエンドアプリケーション
+│   └── App.vue           # Vue.jsアプリケーション
+└── config/               # 設定ファイル
+    ├── todoapp.service   # Gunicorn用systemdサービスファイル
+    └── todoapp.conf      # nginx設定ファイル
 ```
 
 ## 技術スタック
