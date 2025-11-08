@@ -137,10 +137,8 @@ deactivate
 書籍: `===== ・2-4. バックエンドアプリケーションファイルのコピー`
 
 ```bash
-# リポジトリからバックエンドファイルをコピー
-cp /opt/todoapp/temp-config/backend/app.py /opt/todoapp/backend/
-cp /opt/todoapp/temp-config/backend/db.py /opt/todoapp/backend/
-cp /opt/todoapp/temp-config/backend/wsgi.py /opt/todoapp/backend/
+# リポジトリからバックエンドファイルをコピー（全ファイルを一括コピー）
+cp /opt/todoapp/temp-config/backend/* /opt/todoapp/backend/
 ```
 
 ### フロントエンドの構築
@@ -161,7 +159,8 @@ npm create vite@latest frontend -- --template vue
 # プロジェクト作成時に以下の質問が出た場合の回答：
 # - Ok to proceed? (y) → y を入力
 # - 「Use rolldown-vite (Experimental)?」→ 「No」を選択（デフォルトで選択されているためEnterキーでOK）
-# - 「Install with npm and start now?」→ 「No」を選択（手動でnpm installを実行するため）
+# - 「Install with npm and start now?」→ 「No」を選択
+#   （開発サーバーの起動は不要で、プロダクションビルドのみ行うため）
 
 # プロジェクトディレクトリに移動
 cd frontend
@@ -175,12 +174,6 @@ npm install
 書籍: `===== ・3-2. Vue.jsアプリケーションの実装`
 
 ```bash
-# リポジトリが最新の状態でない場合は、一度削除して再クローンするか、git pullで最新化
-# （リポジトリをクローンした後にファイルが追加された場合に必要）
-cd /opt/todoapp
-rm -rf temp-config
-git clone https://github.com/yamadas1213/three-tier-architecture-beginner.git temp-config
-
 # リポジトリからApp.vueをコピー
 cp /opt/todoapp/temp-config/frontend/App.vue /opt/todoapp/frontend/src/App.vue
 ```
