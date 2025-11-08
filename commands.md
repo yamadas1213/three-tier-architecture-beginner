@@ -569,72 +569,6 @@ sudo systemctl status todoapp
 
 Gunicorn設定ファイルを更新し、MySQL HeatWaveへの接続が正しく設定された後、アプリケーションが正常に動作するか確認します。
 
-Gunicornサービスが正常に起動しているか確認:
-
-```bash
-sudo systemctl status todoapp
-```
-
-GunicornのUnixソケットファイルが作成されているか確認:
-
-```bash
-ls -la /opt/todoapp/backend/todoapp.sock
-```
-
-nginxの設定が正しく読み込まれているか確認:
-
-```bash
-sudo nginx -t
-```
-
-nginxの設定ファイルを確認（デフォルト設定が残っていないか確認）:
-
-```bash
-sudo ls -la /etc/nginx/conf.d/
-```
-
-nginx設定ファイルの内容を確認（proxy_passのパスが正しいか確認）:
-
-```bash
-sudo cat /etc/nginx/conf.d/todoapp.conf
-```
-
-もし proxy_pass が http://unix:/opt/todoapp/todoapp.sock になっている場合は、リポジトリから最新の設定ファイルを再コピーするか、手動で修正する:
-
-```bash
-sudo cp /opt/todoapp/temp-config/config/todoapp.conf /etc/nginx/conf.d/todoapp.conf
-```
-
-```bash
-sudo systemctl reload nginx
-```
-
-GunicornのUnixソケットのパスと、nginx設定のパスが一致しているか確認（設定ファイルの proxy_pass が http://unix:/opt/todoapp/backend/todoapp.sock になっているか確認）
-
-nginxのエラーログを確認（問題がある場合）:
-
-```bash
-sudo tail -20 /var/log/nginx/error.log
-```
-
-nginxのメイン設定ファイルを確認（conf.dディレクトリが読み込まれているか確認）:
-
-```bash
-sudo grep -A 5 "include.*conf.d" /etc/nginx/nginx.conf
-```
-
-nginxのアクセスログも確認（リクエストが到達しているか確認）:
-
-```bash
-sudo tail -10 /var/log/nginx/access.log
-```
-
-nginxが読み込んでいる設定ファイルを確認:
-
-```bash
-sudo nginx -T 2>&1 | grep -A 10 "server_name"
-```
-
 ヘルスチェックエンドポイントの確認:
 
 ```bash
@@ -644,7 +578,7 @@ curl http://localhost/health
 APIエンドポイントの動作確認（データベース接続が必要）、タスク一覧の取得:
 
 ```bash
-curl http://localhost/api/todos
+curl http://localhost/api/todos | jq .
 ```
 
 新規タスクの追加:
@@ -658,7 +592,7 @@ curl -X POST http://localhost/api/todos \
 再度タスク一覧を取得して、追加されたことを確認:
 
 ```bash
-curl http://localhost/api/todos
+curl http://localhost/api/todos | jq .
 ```
 
 フロントエンドのHTMLファイルが配信されるか確認:
